@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GainerFlow - Top Stock Screener</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header animate-fade-in">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-chart-line-up"></i>
+                </div>
+                <div>
+                    <h1>GainerFlow</h1>
+                    <p class="subtitle">Finviz Top Gainers & Real-Time Watchlist</p>
+                </div>
+            </div>
+            
+            <div class="header-controls">
+                <div class="market-status-bar" id="market-status-bar">
+                    <span class="market-status-dot"></span>
+                    <span id="market-status-text">Checking Market...</span>
+                </div>
+                <div class="market-health-bar" id="market-health-bar" title="Market health based on Nasdaq (QQQ) relative to its 50-day Moving Average (SMA)">
+                    <span class="health-icon" id="market-health-icon"><i class="fa-solid fa-heart heartbeat-icon"></i></span>
+                    <span id="market-health-text">Market: Checking...</span>
+                </div>
+                <div class="refresh-status">
+                    <span class="pulse-dot"></span>
+                    <span id="auto-refresh-timer">Auto-refresh in 05:00</span>
+                </div>
+                <button id="btn-manual-refresh" class="btn btn-primary" title="Refresh Screener">
+                    <i id="refresh-icon" class="fa-solid fa-arrows-rotate"></i>
+                    <span>Refresh Data</span>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Search Ticker & Add -->
+        <section class="search-section animate-fade-in delay-1">
+            <div class="search-card">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="input-search-ticker" placeholder="Enter stock ticker (e.g. AAPL, TSLA, NVDA)..." autocomplete="off">
+                <button id="btn-search-submit" class="btn btn-secondary">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Quick Quote / Add</span>
+                </button>
+            </div>
+            <div id="search-error-msg" class="search-error-msg hidden"></div>
+        </section>
+
+        <!-- Main Dashboard Layout -->
+        <!-- Main Dashboard Layout -->
+        <main class="dashboard-grid">
+            
+            <!-- Left Column Dropzone -->
+            <div class="dashboard-col" id="col-left">
+                <!-- Left Panel: Screeners -->
+                <section class="dashboard-panel screener-panel animate-fade-in delay-2" id="panel-screener" draggable="true">
+                    <div class="panel-header-tabs" style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-grip-vertical drag-handle" title="Drag to rearrange panel" style="padding: 10px; margin-right: 4px;"></i>
+                        <button class="tab-btn active" id="tab-gainers">
+                            <i class="fa-solid fa-fire text-gainer"></i>
+                            <span>Top Gainers</span>
+                            <span class="badge" id="screener-count">0</span>
+                        </button>
+                        <button class="tab-btn" id="tab-bullish">
+                            <i class="fa-solid fa-circle-arrow-up text-bullish"></i>
+                            <span>Bullish Scan</span>
+                            <span class="badge" id="bullish-count">0</span>
+                        </button>
+                        <button class="tab-btn" id="tab-mostactive">
+                            <i class="fa-solid fa-bolt" style="color: #eab308;"></i>
+                            <span>Most Active</span>
+                            <span class="badge" id="mostactive-count">0</span>
+                        </button>
+                        <button class="tab-btn" id="tab-unusualvolume">
+                            <i class="fa-solid fa-volume-high" style="color: #a855f7;"></i>
+                            <span>Unusual Volume</span>
+                            <span class="badge" id="unusualvolume-count">0</span>
+                        </button>
+                        <button class="tab-btn" id="tab-mostvolatile">
+                            <i class="fa-solid fa-wave-square" style="color: #ef4444;"></i>
+                            <span>Most Volatile</span>
+                            <span class="badge" id="mostvolatile-count">0</span>
+                        </button>
+                        <button class="tab-btn" id="tab-breakouts">
+                            <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i>
+                            <span>Break out alerts</span>
+                            <span class="badge" id="breakouts-count">0</span>
+                        </button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="data-table" id="table-screener">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th>
+                                    <th>Company</th>
+                                    <th>Sector</th>
+                                    <th>Price</th>
+                                    <th>Change</th>
+                                    <th>Volume</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="screener-list">
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">
+                                        <div class="spinner-container">
+                                            <i class="fa-solid fa-circle-notch fa-spin text-primary font-lg"></i>
+                                            <p class="mt-2">Fetching gainers from Finviz...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- Right Column Dropzone -->
+            <div class="dashboard-col" id="col-right">
+                <!-- Right Panel: Watchlist -->
+                <section class="dashboard-panel watchlist-panel animate-fade-in delay-3" id="panel-watchlist" draggable="true">
+                    <div class="panel-header">
+                        <div class="panel-title-group">
+                            <i class="fa-solid fa-grip-vertical drag-handle" title="Drag to rearrange panel"></i>
+                            <i class="fa-solid fa-star text-watchlist"></i>
+                            <h2>My Watchlist</h2>
+                        </div>
+                        <span class="badge badge-watchlist" id="watchlist-count">0 stocks</span>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="data-table" id="table-watchlist">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th>
+                                    <th>Company</th>
+                                    <th id="header-watchlist-price" class="text-right" style="cursor: pointer; user-select: none;">Price <i class="fa-solid fa-sort text-xs opacity-50 ml-1"></i></th>
+                                    <th id="header-watchlist-change" class="text-right" style="cursor: pointer; user-select: none;">Change <i class="fa-solid fa-sort text-xs opacity-50 ml-1"></i></th>
+                                    <th id="header-watchlist-volume" class="text-right" style="cursor: pointer; user-select: none;">Volume <i class="fa-solid fa-sort text-xs opacity-50 ml-1"></i></th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="watchlist-list">
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        <i class="fa-regular fa-star font-lg mb-2"></i>
+                                        <p>Your watchlist is empty.</p>
+                                        <p class="text-xs text-muted mt-1">Search a ticker above or click stars in the list to track stocks.</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Right Panel: Trending Industries -->
+                <section class="dashboard-panel sector-panel animate-fade-in delay-4" id="panel-sectors" draggable="true">
+                    <div class="panel-header">
+                        <div class="panel-title-group">
+                            <i class="fa-solid fa-grip-vertical drag-handle" title="Drag to rearrange panel"></i>
+                            <i class="fa-solid fa-fire-flame-curved text-gainer"></i>
+                            <h2 title="Momentum Heat Score Schema:&#10;• Green (Score &ge; 10): Ultra Hot momentum clusters (e.g. Biotechnology)&#10;• Orange (Score 4 to 10): Strong Trend momentum clusters (e.g. Semiconductor Equipment)&#10;• Indigo (Score &lt; 4): Growing momentum clusters" style="cursor: help;">Trending Industries &amp; Leaders</h2>
+                        </div>
+                    </div>
+                    <div class="panel-body" id="sector-rotation-list" style="padding: 20px;">
+                        <div class="text-center py-4 text-muted">
+                            <i class="fa-solid fa-spinner fa-spin font-lg mb-2"></i>
+                            <p>Calculating momentum clusters...</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            
+        </main>
+        
+        <!-- Stock Details Modal -->
+        <div id="stock-modal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <div class="modal-header-title">
+                        <div class="modal-ticker-group">
+                            <span id="modal-ticker">TICKER</span>
+                            <span id="modal-company">Company Name</span>
+                        </div>
+                        <div class="modal-badges">
+                            <span class="modal-badge" id="modal-sector">Sector</span>
+                            <span class="modal-badge" id="modal-industry">Industry</span>
+                            <span class="modal-badge" id="modal-country">Country</span>
+                        </div>
+                    </div>
+                    <button class="btn-close-modal" id="btn-close-modal">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <!-- Top section: Details Grid & Chart -->
+                    <div class="modal-main-grid">
+                        
+                        <!-- Left inside: Chart -->
+                        <div class="modal-chart-section">
+                            <div class="chart-controls">
+                                <div class="btn-group">
+                                    <button class="btn btn-chart-opt active" data-opt="ty" data-val="c">Candle</button>
+                                    <button class="btn btn-chart-opt" data-opt="ty" data-val="l">Line</button>
+                                </div>
+                                <div class="btn-group">
+                                    <button class="btn btn-chart-opt active" data-opt="p" data-val="d">Daily</button>
+                                    <button class="btn btn-chart-opt" data-opt="p" data-val="w">Weekly</button>
+                                    <button class="btn btn-chart-opt" data-opt="p" data-val="m">Monthly</button>
+                                </div>
+                                <div class="btn-group">
+                                    <button class="btn btn-chart-opt active" data-opt="ta" data-val="1">Indicators</button>
+                                    <button class="btn btn-chart-opt" data-opt="ta" data-val="0">Clean</button>
+                                </div>
+                            </div>
+                            
+                            <div class="chart-wrapper">
+                                <div id="chart-loading" class="chart-loading hidden">
+                                    <i class="fa-solid fa-spinner fa-spin font-lg"></i>
+                                    <p>Loading Live Chart...</p>
+                                </div>
+                                <img id="stock-chart" src="" alt="Stock Chart">
+                            </div>
+                        </div>
+                        
+                        <!-- Right inside: Real-time Update Actions & Quick stats -->
+                        <div class="modal-actions-sidebar">
+                            <div class="sidebar-card quote-summary-card">
+                                <h3>Quote Summary</h3>
+                                <div class="quote-row">
+                                    <span class="label">Latest Price</span>
+                                    <span class="value" id="modal-price">$0.00</span>
+                                </div>
+                                <div class="quote-row">
+                                    <span class="label">Day's Change</span>
+                                    <span class="value change-text" id="modal-change">0.00%</span>
+                                </div>
+                                <div class="quote-row">
+                                    <span class="label">Market Cap</span>
+                                    <span class="value" id="modal-market-cap">N/A</span>
+                                </div>
+                                <div class="quote-row">
+                                    <span class="label">Volume</span>
+                                    <span class="value" id="modal-volume">N/A</span>
+                                </div>
+                                <div class="quote-row">
+                                    <span class="label">P/E Ratio</span>
+                                    <span class="value" id="modal-pe">N/A</span>
+                                </div>
+                                <div class="quote-row text-xs text-muted justify-end">
+                                    <span id="modal-update-time">Updated: N/A</span>
+                                </div>
+                            </div>
+
+                            <div class="action-buttons-stack">
+                                <button id="btn-modal-watchlist-toggle" class="btn btn-full btn-outline">
+                                    <i class="fa-regular fa-star"></i>
+                                    <span>Add to Watchlist</span>
+                                </button>
+                                <button id="btn-modal-refresh-quote" class="btn btn-full btn-secondary">
+                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                    <span>Update Quote Details</span>
+                                </button>
+                                <button id="btn-modal-ai-news" class="btn btn-full btn-primary btn-ai-news-accent">
+                                    <i class="fa-solid fa-brain"></i>
+                                    <span>AI News Analysis</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Middle section: Snapshot Financial Table -->
+                    <div class="modal-section">
+                        <div class="section-title">
+                            <i class="fa-solid fa-square-poll-vertical"></i>
+                            <h3>Financial Snapshot Metrics</h3>
+                        </div>
+                        <div class="snapshot-grid-container">
+                            <div class="snapshot-grid" id="modal-snapshot-grid">
+                                <!-- Dynamic cells loaded from JS -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bottom section: Company Profile & Notes -->
+                    <div class="modal-bottom-grid">
+                        <div class="modal-section company-profile-section">
+                            <div class="section-title">
+                                <i class="fa-solid fa-building"></i>
+                                <h3>Company Profile</h3>
+                            </div>
+                            <p class="company-desc" id="modal-profile-desc">
+                                Loading company details...
+                            </p>
+                        </div>
+                        
+                        <div class="modal-section custom-notes-section">
+                            <div class="section-title">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                <h3>Custom Stock Update / Notes</h3>
+                            </div>
+                            <p class="section-subtitle">Add custom annotations or track specific updates for this stock</p>
+                            <textarea id="modal-notes-area" placeholder="Type comments, purchase plans, custom alerts or updates here..."></textarea>
+                            <div class="notes-footer">
+                                <span id="notes-status-msg" class="notes-status text-success hidden">Saved!</span>
+                                <button id="btn-save-notes" class="btn btn-primary btn-sm">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Notes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- AI News Modal -->
+    <div id="ai-news-modal" class="modal-overlay hidden" style="z-index: 1100;">
+        <div class="modal-card" style="max-width: 700px;">
+            <div class="modal-header">
+                <div class="modal-header-title">
+                    <div class="modal-ticker-group">
+                        <span id="ai-news-ticker" style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: white;">TICKER</span>
+                        <span style="font-size: 16px; font-weight: 500; color: var(--text-secondary);">AI News Analysis</span>
+                    </div>
+                </div>
+                <button class="btn-close-modal" id="btn-close-ai-modal">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 24px; max-height: 70vh; overflow-y: auto;">
+                <div id="ai-news-loading" class="text-center py-4">
+                    <i class="fa-solid fa-brain fa-spin font-lg mb-2" style="color: #a855f7;"></i>
+                    <p>Analyzing recent headlines with Gemini AI...</p>
+                </div>
+                <div id="ai-news-content" class="markdown-content hidden" style="line-height: 1.6; color: var(--text-primary);">
+                    <!-- AI News markdown content will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hover Stock Preview Card -->
+    <div id="ticker-hover-card" class="hover-card hidden">
+        <div class="hover-card-chart-container">
+            <div id="hover-card-loading" class="hover-card-loading">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+            </div>
+            <img id="hover-card-img" src="" alt="Stock Preview Chart">
+        </div>
+        <div class="hover-card-details">
+            <div class="hover-card-header">
+                <span id="hover-card-ticker" class="hover-card-ticker">TICKER</span>
+                <span id="hover-card-company" class="hover-card-company">Company Name</span>
+            </div>
+            <div id="hover-card-meta" class="hover-card-meta">Sector • Country • Market Cap</div>
+        </div>
+    </div>
+
+    <!-- JavaScript Bundle -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

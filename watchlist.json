@@ -1,0 +1,260 @@
+{
+  "tickers": [
+    "AAPL",
+    "TSLA",
+    "NKE",
+    "META",
+    "MARA",
+    "TSM",
+    "UAL",
+    "PYPL",
+    "IBM",
+    "MS",
+    "AEHR"
+  ],
+  "notes": {
+    "FOFO": "hi"
+  },
+  "cached_data": {
+    "AAPL": {
+      "ticker": "AAPL",
+      "company": "Apple Inc",
+      "sector": "Technology",
+      "industry": "Consumer Electronics",
+      "country": "USA",
+      "market_cap": "4772.95B",
+      "pe": "39.31",
+      "price": "324.97",
+      "change": "3.21%",
+      "volume": "19,217,715",
+      "price_history": [
+        323.98,
+        323.99,
+        324.18,
+        324.47,
+        324.97
+      ],
+      "trend": "up",
+      "earnings_date": "2026-07-30",
+      "earnings_soon": false
+    },
+    "TSLA": {
+      "ticker": "TSLA",
+      "company": "Tesla Inc",
+      "sector": "Consumer Cyclical",
+      "industry": "Auto Manufacturers",
+      "country": "USA",
+      "market_cap": "1491.06B",
+      "pe": "362.70",
+      "price": "397.01",
+      "change": "0.21%",
+      "volume": "13,449,270",
+      "price_history": [
+        395.77,
+        397.06,
+        396.4,
+        397.55,
+        397.01
+      ],
+      "trend": "neutral",
+      "earnings_date": "2026-07-22",
+      "earnings_soon": false
+    },
+    "NKE": {
+      "ticker": "NKE",
+      "company": "Nike Inc",
+      "sector": "Consumer Cyclical",
+      "industry": "Footwear & Accessories",
+      "country": "USA",
+      "market_cap": "64.22B",
+      "pe": "20.67",
+      "price": "43.37",
+      "change": "1.18%",
+      "volume": "5,285,194",
+      "price_history": [
+        43.38,
+        43.53,
+        43.44,
+        43.42,
+        43.37
+      ],
+      "trend": "neutral",
+      "earnings_date": "2026-09-29",
+      "earnings_soon": false
+    },
+    "META": {
+      "ticker": "META",
+      "company": "Meta Platforms Inc",
+      "sector": "Communication Services",
+      "industry": "Internet Content & Information",
+      "country": "USA",
+      "market_cap": "1724.52B",
+      "pe": "24.70",
+      "price": "679.36",
+      "change": "2.77%",
+      "volume": "6,913,631",
+      "price_history": [
+        673.35,
+        676.74,
+        681.52,
+        681.74,
+        679.36
+      ],
+      "trend": "neutral",
+      "earnings_date": "2026-07-29",
+      "earnings_soon": false
+    },
+    "MARA": {
+      "ticker": "MARA",
+      "company": "MARA Holdings Inc",
+      "sector": "Financial",
+      "industry": "Capital Markets",
+      "country": "USA",
+      "market_cap": "4.53B",
+      "pe": "-",
+      "price": "11.89",
+      "change": "-2.24%",
+      "volume": "17,103,626",
+      "price_history": [
+        11.88,
+        11.91,
+        11.97,
+        11.88,
+        11.89
+      ],
+      "trend": "neutral",
+      "earnings_date": "2026-07-28",
+      "earnings_soon": false
+    },
+    "TSM": {
+      "ticker": "TSM",
+      "company": "Taiwan Semiconductor Manufacturing ADR",
+      "sector": "Technology",
+      "industry": "Semiconductors",
+      "country": "Taiwan",
+      "market_cap": "2169.84B",
+      "pe": "34.77",
+      "price": "418.36",
+      "change": "-0.48%",
+      "volume": "5,972,673",
+      "price_history": [
+        419.84,
+        420.1,
+        419.46,
+        418.98,
+        418.36
+      ],
+      "trend": "neutral",
+      "earnings_date": "2026-07-16",
+      "earnings_soon": true
+    },
+    "UAL": {
+      "ticker": "UAL",
+      "company": "United Airlines Holdings Inc",
+      "sector": "Industrials",
+      "industry": "Airlines",
+      "country": "USA",
+      "market_cap": "39.57B",
+      "pe": "10.88",
+      "price": "121.93",
+      "change": "1.31%",
+      "volume": "1,131,406",
+      "price_history": [
+        122.33,
+        122.37,
+        122.28,
+        122.64,
+        121.93
+      ],
+      "trend": "neutral",
+      "earnings_date": "2026-07-15",
+      "earnings_soon": true
+    },
+    "PYPL": {
+      "ticker": "PYPL",
+      "company": "PayPal Holdings Inc",
+      "sector": "Financial",
+      "industry": "Credit Services",
+      "country": "USA",
+      "market_cap": "48.60B",
+      "pe": "10.34",
+      "price": "55.10",
+      "change": "16.31%",
+      "volume": "53,340,735",
+      "price_history": [
+        55.44,
+        55.39,
+        55.43,
+        55.47,
+        55.1
+      ],
+      "trend": "neutral",
+      "earnings_date": "2026-07-28",
+      "earnings_soon": false
+    },
+    "IBM": {
+      "ticker": "IBM",
+      "company": "International Business Machines Corp",
+      "sector": "Technology",
+      "industry": "Information Technology Services",
+      "country": "USA",
+      "market_cap": "201.55B",
+      "pe": "18.96",
+      "price": "214.45",
+      "change": "-1.21%",
+      "volume": "12,783,685",
+      "price_history": [
+        215.62,
+        215.37,
+        214.69,
+        214.56,
+        214.45
+      ],
+      "trend": "neutral",
+      "earnings_date": "2026-07-22",
+      "earnings_soon": false
+    },
+    "MS": {
+      "ticker": "MS",
+      "company": "Morgan Stanley",
+      "sector": "Financial",
+      "industry": "Capital Markets",
+      "country": "USA",
+      "market_cap": "360.85B",
+      "pe": "20.72",
+      "price": "228.78",
+      "change": "0.49%",
+      "volume": "3,982,893",
+      "price_history": [
+        230.04,
+        229.94,
+        229.29,
+        229.44,
+        228.78
+      ],
+      "trend": "neutral",
+      "earnings_date": "2026-07-15",
+      "earnings_soon": true
+    },
+    "AEHR": {
+      "ticker": "AEHR",
+      "company": "Aehr Test Systems",
+      "sector": "Technology",
+      "industry": "Semiconductor Equipment & Materials",
+      "country": "USA",
+      "market_cap": "2.89B",
+      "pe": "-",
+      "price": "91.98",
+      "change": "27.73%",
+      "volume": "8,114,002",
+      "price_history": [
+        91.95,
+        92.43,
+        91.98
+      ],
+      "trend": "neutral",
+      "earnings_date": "2026-10-08",
+      "earnings_soon": false
+    }
+  }
+}
