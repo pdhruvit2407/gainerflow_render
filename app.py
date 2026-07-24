@@ -2,6 +2,8 @@ import os
 import json
 import requests
 import yfinance as yf
+import pandas as pd
+import numpy as np
 from bs4 import BeautifulSoup
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -690,6 +692,247 @@ def get_stock_ai_news(ticker):
             
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+def calculate_indicators(df, supertrend_period=10, supertrend_multiplier=3.0):
+    if df.empty or len(df) < 10:
+        return df
+    
+    # Calculate EMAs for Ripster Clouds
+    df['ema8'] = df['Close'].ewm(span=8, adjust=False).mean()
+    df['ema9'] = df['Close'].ewm(span=9, adjust=False).mean()
+    df['ema12'] = df['Close'].ewm(span=12, adjust=False).mean()
+    df['ema34'] = df['Close'].ewm(span=34, adjust=False).mean()
+    df['ema50'] = df['Close'].ewm(span=50, adjust=False).mean()
+    df['ema89'] = df['Close'].ewm(span=89, adjust=False).mean()
+    df['ema200'] = df['Close'].ewm(span=200, adjust=False).mean() if len(df) >= 200 else df['Close']
+    
+    # Calculate Supertrend
+    high = df['High']
+    low = df['Low']
+    close = df['Close']
+    
+    tr1 = high - low
+    tr2 = (high - close.shift(1)).abs()
+    tr3 = (low - close.shift(1)).abs()
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    
+    # ATR Wilder's Moving Average
+    atr = tr.ewm(alpha=1/supertrend_period, adjust=False).mean()
+    
+    hl2 = (high + low) / 2
+    basic_ub = hl2 + supertrend_multiplier * atr
+    basic_lb = hl2 - supertrend_multiplier * atr
+    
+    final_ub = basic_ub.copy()
+    final_lb = basic_lb.copy()
+    
+    supertrend = pd.Series(0.0, index=df.index)
+    trend = pd.Series(1, index=df.index)
+    
+    for i in range(1, len(df)):
+        # Final Upper Band
+        if basic_ub.iloc[i] < final_ub.iloc[i-1] or close.iloc[i-1] > final_ub.iloc[i-1]:
+            final_ub.iloc[i] = basic_ub.iloc[i]
+        else:
+            final_ub.iloc[i] = final_ub.iloc[i-1]
+            
+        # Final Lower Band
+        if basic_lb.iloc[i] > final_lb.iloc[i-1] or close.iloc[i-1] < final_lb.iloc[i-1]:
+            final_lb.iloc[i] = basic_lb.iloc[i]
+        else:
+            final_lb.iloc[i] = final_lb.iloc[i-1]
+            
+        # Trend
+        if close.iloc[i] > final_ub.iloc[i]:
+            trend.iloc[i] = 1
+        elif close.iloc[i] < final_lb.iloc[i]:
+            trend.iloc[i] = -1
+        else:
+            trend.iloc[i] = trend.iloc[i-1]
+            
+        # Supertrend
+        if trend.iloc[i] == 1:
+            supertrend.iloc[i] = final_lb.iloc[i]
+        else:
+            supertrend.iloc[i] = final_ub.iloc[i]
+            
+    df['supertrend'] = supertrend
+    df['supertrend_direction'] = trend
+    
+    # Calculate Signals
+    signals = []
+    for i in range(1, len(df)):
+        prev_st_dir = trend.iloc[i-1]
+        curr_st_dir = trend.iloc[i]
+        
+        prev_close = close.iloc[i-1]
+        curr_close = close.iloc[i]
+        
+        prev_cloud_max = max(df['ema12'].iloc[i-1], df['ema34'].iloc[i-1])
+        curr_cloud_max = max(df['ema12'].iloc[i], df['ema34'].iloc[i])
+        
+        prev_cloud_min = min(df['ema12'].iloc[i-1], df['ema34'].iloc[i-1])
+        curr_cloud_min = min(df['ema12'].iloc[i], df['ema34'].iloc[i])
+        
+        signal = 'neutral'
+        
+        # BUY
+        if prev_st_dir == -1 and curr_st_dir == 1:
+            signal = 'buy_supertrend_flip'
+        elif curr_st_dir == 1 and prev_close <= prev_cloud_max and curr_close > curr_cloud_max:
+            signal = 'buy_cloud_breakout'
+        # SELL
+        elif prev_st_dir == 1 and curr_st_dir == -1:
+            signal = 'sell_supertrend_flip'
+        elif curr_st_dir == -1 and prev_close >= prev_cloud_min and curr_close < curr_cloud_min:
+            signal = 'sell_cloud_breakdown'
+            
+        signals.append(signal)
+        
+    df['signal'] = ['neutral'] + signals
+    return df
+
+@app.route('/api/stock/<ticker>/indicators')
+def get_stock_indicators(ticker):
+    ticker = ticker.upper().strip()
+    interval = request.args.get('interval', '5m')
+    
+    try:
+        t = yf.Ticker(ticker)
+        df = t.history(interval=interval, period='5d')
+        if df.empty or len(df) < 15:
+            return jsonify({'success': False, 'error': f'No historical intraday data found for {ticker}'}), 404
+            
+        df = calculate_indicators(df)
+        
+        candles = []
+        ema8 = []
+        ema9 = []
+        ema12 = []
+        ema34 = []
+        ema50 = []
+        supertrend = []
+        signals = []
+        
+        for idx, row in df.iterrows():
+            t_val = int(idx.timestamp())
+            
+            candles.append({
+                'time': t_val,
+                'open': float(row['Open']),
+                'high': float(row['High']),
+                'low': float(row['Low']),
+                'close': float(row['Close']),
+                'volume': float(row['Volume'])
+            })
+            
+            ema8.append({'time': t_val, 'value': float(row['ema8'])})
+            ema9.append({'time': t_val, 'value': float(row['ema9'])})
+            ema12.append({'time': t_val, 'value': float(row['ema12'])})
+            ema34.append({'time': t_val, 'value': float(row['ema34'])})
+            ema50.append({'time': t_val, 'value': float(row['ema50'])})
+            
+            supertrend.append({
+                'time': t_val,
+                'value': float(row['supertrend']),
+                'direction': int(row['supertrend_direction'])
+            })
+            
+            if row['signal'] != 'neutral':
+                signals.append({
+                    'time': t_val,
+                    'type': row['signal'],
+                    'price': float(row['Close'])
+                })
+        
+        latest = df.iloc[-1]
+        status = {
+            'price': float(latest['Close']),
+            'ema12': float(latest['ema12']),
+            'ema34': float(latest['ema34']),
+            'ema50': float(latest['ema50']),
+            'supertrend': float(latest['supertrend']),
+            'supertrend_direction': int(latest['supertrend_direction']),
+            'signal': latest['signal'],
+            'updated_at': df.index[-1].strftime('%Y-%m-%d %I:%M:%S %p')
+        }
+        
+        return jsonify({
+            'success': True,
+            'candles': candles,
+            'ema8': ema8,
+            'ema9': ema9,
+            'ema12': ema12,
+            'ema34': ema34,
+            'ema50': ema50,
+            'supertrend': supertrend,
+            'signals': signals,
+            'status': status
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/watchlist/signals')
+def get_watchlist_signals():
+    watchlist = load_watchlist()
+    tickers = watchlist.get('tickers', [])
+    if not tickers:
+        return jsonify({'success': True, 'signals': {}})
+        
+    signals_data = {}
+    
+    def get_ticker_signal(ticker):
+        try:
+            t = yf.Ticker(ticker)
+            df = t.history(interval='5m', period='2d')
+            if df.empty or len(df) < 15:
+                return None
+            df = calculate_indicators(df)
+            latest = df.iloc[-1]
+            
+            recent_signal = 'neutral'
+            recent_signal_candle_idx = -1
+            
+            # Look back up to 3 candles
+            for offset in [1, 2, 3]:
+                if len(df) >= offset:
+                    sig = df['signal'].iloc[-offset]
+                    if sig != 'neutral':
+                        recent_signal = sig
+                        recent_signal_candle_idx = len(df) - offset
+                        break
+                        
+            return {
+                'ticker': ticker,
+                'price': float(latest['Close']),
+                'change_pct': float(round(((latest['Close'] - df['Close'].iloc[-2]) / df['Close'].iloc[-2]) * 100, 2)) if len(df) > 1 else 0.0,
+                'supertrend_direction': int(latest['supertrend_direction']),
+                'supertrend': float(latest['supertrend']),
+                'ema12': float(latest['ema12']),
+                'ema34': float(latest['ema34']),
+                'ema50': float(latest['ema50']),
+                'latest_signal': latest['signal'],
+                'recent_signal': recent_signal,
+                'recent_signal_age': (len(df) - 1 - recent_signal_candle_idx) if recent_signal != 'neutral' else -1,
+                'updated_at': df.index[-1].strftime('%I:%M %p')
+            }
+        except Exception as ex:
+            print(f"Error calculating watchlist signal for {ticker}: {ex}")
+            return None
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=min(len(tickers), 10)) as executor:
+        results = executor.map(get_ticker_signal, tickers)
+        
+    for res in results:
+        if res:
+            signals_data[res['ticker']] = res
+            
+    return jsonify({
+        'success': True,
+        'signals': signals_data
+    })
 
 @app.route('/favicon.ico')
 def favicon():

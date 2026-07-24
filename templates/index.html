@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Style -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- TradingView Lightweight Charts -->
+    <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body class="dark-theme">
     <div class="app-container">
@@ -101,6 +103,11 @@
                             <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i>
                             <span>Break out alerts</span>
                             <span class="badge" id="breakouts-count">0</span>
+                        </button>
+                        <button class="tab-btn" id="tab-livealerts">
+                            <i class="fa-solid fa-bell" style="color: #ef4444;"></i>
+                            <span>Live Signals</span>
+                            <span class="badge" id="livealerts-count" style="background-color: #ef4444; color: white;">0</span>
                         </button>
                     </div>
                     
@@ -225,6 +232,7 @@
                                     <button class="btn btn-chart-opt active" data-opt="p" data-val="d">Daily</button>
                                     <button class="btn btn-chart-opt" data-opt="p" data-val="w">Weekly</button>
                                     <button class="btn btn-chart-opt" data-opt="p" data-val="m">Monthly</button>
+                                    <button class="btn btn-chart-opt" data-opt="p" data-val="5m">5m Live</button>
                                 </div>
                                 <div class="btn-group">
                                     <button class="btn btn-chart-opt active" data-opt="ta" data-val="1">Indicators</button>
@@ -238,6 +246,7 @@
                                     <p>Loading Live Chart...</p>
                                 </div>
                                 <img id="stock-chart" src="" alt="Stock Chart">
+                                <div id="live-indicator-chart" class="live-chart-container hidden" style="width: 100%; height: 350px; border-radius: 8px; overflow: hidden;"></div>
                             </div>
                         </div>
                         
@@ -269,7 +278,26 @@
                                     <span id="modal-update-time">Updated: N/A</span>
                                 </div>
                             </div>
-
+                            
+                            <div class="sidebar-card strategy-status-card hidden" id="modal-strategy-card">
+                                <h3>Ripster & ST Strategy</h3>
+                                <div class="quote-row">
+                                    <span class="label">Supertrend 5m</span>
+                                    <span class="value" id="strategy-supertrend">-</span>
+                                </div>
+                                <div class="quote-row">
+                                    <span class="label">EMA Cloud Bias</span>
+                                    <span class="value" id="strategy-ema-cloud">-</span>
+                                </div>
+                                <div class="quote-row">
+                                    <span class="label">Signal / Alert</span>
+                                    <span class="value" id="strategy-signal">-</span>
+                                </div>
+                                <div class="strategy-desc" id="strategy-recommendation" style="font-size: 11px; margin-top: 8px; color: var(--text-secondary); line-height: 1.4; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 8px;">
+                                    Loading Ripster & Supertrend status...
+                                </div>
+                            </div>
+                            
                             <div class="action-buttons-stack">
                                 <button id="btn-modal-watchlist-toggle" class="btn btn-full btn-outline">
                                     <i class="fa-regular fa-star"></i>

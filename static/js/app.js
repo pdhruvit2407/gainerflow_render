@@ -2,6 +2,7 @@
 let watchlist = [];
 let watchlistNotes = {};
 let watchlistCached = {};
+let watchlistSignals = {};
 let screenerStocks = [];
 let bullishStocks = [];
 let mostActiveStocks = [];
@@ -12,6 +13,12 @@ let activeTab = 'gainers'; // 'gainers', 'bullish', 'mostactive', 'unusualvolume
 let selectedTicker = null;
 let selectedStockDetails = null;
 let isMarketOpen = true; // default to true, checked dynamically
+let lightweightChart = null;
+let lightweightChartCandleSeries = null;
+let lightweightChartEma12Series = null;
+let lightweightChartEma34Series = null;
+let lightweightChartEma50Series = null;
+let lightweightChartSupertrendSeries = null;
 
 // Watchlist Sorting State
 let watchlistSortKey = null; // 'price' or 'volume'
@@ -66,6 +73,8 @@ const elTabMostVolatile = document.getElementById('tab-mostvolatile');
 const elMostVolatileCount = document.getElementById('mostvolatile-count');
 const elTabBreakouts = document.getElementById('tab-breakouts');
 const elBreakoutsCount = document.getElementById('breakouts-count');
+const elTabLiveAlerts = document.getElementById('tab-livealerts');
+const elLiveAlertsCount = document.getElementById('livealerts-count');
 
 // AI News Modal Elements
 const elAiNewsModal = document.getElementById('ai-news-modal');
@@ -103,12 +112,23 @@ const elBtnSaveNotes = document.getElementById('btn-save-notes');
 const elNotesStatusMsg = document.getElementById('notes-status-msg');
 const elBtnModalWatchlistToggle = document.getElementById('btn-modal-watchlist-toggle');
 const elBtnModalRefreshQuote = document.getElementById('btn-modal-refresh-quote');
+const elLiveIndicatorChart = document.getElementById('live-indicator-chart');
+const elModalStrategyCard = document.getElementById('modal-strategy-card');
+const elStrategySupertrend = document.getElementById('strategy-supertrend');
+const elStrategyEmaCloud = document.getElementById('strategy-ema-cloud');
+const elStrategySignal = document.getElementById('strategy-signal');
+const elStrategyRecommendation = document.getElementById('strategy-recommendation');
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize on page load with readyState check to avoid race conditions
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initApp();
+        setupEventListeners();
+    });
+} else {
     initApp();
     setupEventListeners();
-});
+}
 
 // App Initiation
 async function initApp() {
@@ -126,7 +146,8 @@ async function initApp() {
         loadMostActiveData(),
         loadUnusualVolumeData(),
         loadMostVolatileData(),
-        loadBreakoutsData()
+        loadBreakoutsData(),
+        loadWatchlistSignals()
     ]);
     
     // Start timers
@@ -149,6 +170,7 @@ function setupEventListeners() {
         elTabUnusualVolume.classList.remove('active');
         elTabMostVolatile.classList.remove('active');
         elTabBreakouts.classList.remove('active');
+        elTabLiveAlerts.classList.remove('active');
     }
 
     // Tab switching
@@ -197,6 +219,14 @@ function setupEventListeners() {
         activeTab = 'breakouts';
         deactivateAllTabs();
         elTabBreakouts.classList.add('active');
+        renderScreenerTable();
+    });
+
+    elTabLiveAlerts.addEventListener('click', () => {
+        if (activeTab === 'livealerts') return;
+        activeTab = 'livealerts';
+        deactivateAllTabs();
+        elTabLiveAlerts.classList.add('active');
         renderScreenerTable();
     });
 
@@ -437,6 +467,11 @@ function renderScreenerTable() {
     if (!tableScreener) return;
     const thead = tableScreener.querySelector('thead');
     
+    if (activeTab === 'livealerts') {
+        renderLiveAlertsTable();
+        return;
+    }
+    
     thead.innerHTML = `
         <tr>
             <th>Ticker</th>
@@ -635,11 +670,31 @@ function renderWatchlistTable() {
             tr.classList.add('tr-trending-up');
         }
         
-        let tickerHTML = ticker;
+        const signalData = watchlistSignals[ticker];
+        let signalIndicatorHTML = '';
+        if (signalData) {
+            const stDir = signalData.supertrend_direction;
+            const dotClass = stDir === 1 ? 'buy' : 'sell';
+            const dotTitle = stDir === 1 ? 'Supertrend: Bullish (5m)' : 'Supertrend: Bearish (5m)';
+            signalIndicatorHTML = `<span class="signal-dot ${dotClass}" title="${dotTitle}"></span>`;
+            
+            if (signalData.recent_signal && signalData.recent_signal !== 'neutral' && signalData.recent_signal_age <= 3) {
+                const isBuy = signalData.recent_signal.startsWith('buy');
+                const badgeClass = isBuy ? 'buy' : 'sell';
+                const badgeText = isBuy ? 'BUY' : 'SELL';
+                signalIndicatorHTML += `<span class="signal-pill ${badgeClass}" style="padding: 1px 5px; font-size: 8px; margin-left: 4px;" title="Recent 5m Signal: ${signalData.recent_signal}">${badgeText}</span>`;
+            }
+        }
+        
+        let tickerHTML = signalIndicatorHTML ? `${signalIndicatorHTML} ${ticker}` : ticker;
         if (isIntersection) {
-            tickerHTML = `<span class="ticker-intersection">${ticker}</span><i class="fa-solid fa-crown text-xs ml-1" style="color: #eab308;" title="Super Ticker: Intersection of Gainers, Active, Unusual Volume, & Volatile"></i>`;
+            tickerHTML = signalIndicatorHTML 
+                ? `${signalIndicatorHTML} <span class="ticker-intersection">${ticker}</span><i class="fa-solid fa-crown text-xs ml-1" style="color: #eab308;" title="Super Ticker: Intersection of Gainers, Active, Unusual Volume, & Volatile"></i>`
+                : `<span class="ticker-intersection">${ticker}</span><i class="fa-solid fa-crown text-xs ml-1" style="color: #eab308;" title="Super Ticker: Intersection of Gainers, Active, Unusual Volume, & Volatile"></i>`;
         } else if (isTrendingUp) {
-            tickerHTML = `<span>${ticker}</span><i class="fa-solid fa-arrow-trend-up text-gainer animate-pulse ml-1" title="Upward price trend detected over the last 15-25 minutes"></i>`;
+            tickerHTML = signalIndicatorHTML
+                ? `${signalIndicatorHTML} <span>${ticker}</span><i class="fa-solid fa-arrow-trend-up text-gainer animate-pulse ml-1" title="Upward price trend detected over the last 15-25 minutes"></i>`
+                : `<span>${ticker}</span><i class="fa-solid fa-arrow-trend-up text-gainer animate-pulse ml-1" title="Upward price trend detected over the last 15-25 minutes"></i>`;
         }
         
         // Append earnings warning if scheduled within 3 days
@@ -823,6 +878,15 @@ function closeModal() {
     // Reset chart options
     chartOptions = { ty: 'c', p: 'd', ta: '1' };
     
+    // Clean up Lightweight Chart
+    if (lightweightChart) {
+        lightweightChart.remove();
+        lightweightChart = null;
+    }
+    elLiveIndicatorChart.classList.add('hidden');
+    elModalStrategyCard.classList.add('hidden');
+    elStockChart.classList.remove('hidden');
+    
     // Reset active classes on chart buttons
     document.querySelectorAll('.btn-chart-opt').forEach(btn => {
         const opt = btn.getAttribute('data-opt');
@@ -946,6 +1010,24 @@ function renderModalData() {
 function loadModalChart() {
     if (!selectedTicker) return;
     
+    // Cleanup existing Lightweight chart if switching back to image charts
+    if (lightweightChart) {
+        lightweightChart.remove();
+        lightweightChart = null;
+    }
+    
+    if (chartOptions.p === '5m') {
+        elStockChart.classList.add('hidden');
+        elLiveIndicatorChart.classList.remove('hidden');
+        elModalStrategyCard.classList.remove('hidden');
+        renderLiveIndicatorChart(selectedTicker);
+        return;
+    }
+    
+    elLiveIndicatorChart.classList.add('hidden');
+    elModalStrategyCard.classList.add('hidden');
+    elStockChart.classList.remove('hidden');
+    
     elChartLoading.classList.remove('hidden');
     
     // Request chart with selections
@@ -979,7 +1061,8 @@ async function triggerRefresh() {
         loadUnusualVolumeData(),
         loadMostVolatileData(),
         loadBreakoutsData(),
-        loadSectorRotationData()
+        loadSectorRotationData(),
+        loadWatchlistSignals()
     ]);
     
     // Stop spinning after a short delay for visual confirmation
@@ -1594,12 +1677,405 @@ function loadDashboardLayout() {
                     if (id === 'panel-screener') {
                         colLeft.appendChild(panels[id]);
                     } else {
-                        colRight.appendChild(panels[id]);
+colRight.appendChild(panels[id]);
                     }
                 }
             });
         } catch (e) {
-            console.error("Error parsing dashboard layout:", e);
+            console.error("Failed to load dashboard layout:", e);
         }
     }
+}
+
+// Render Live Alerts Screener Table
+function renderLiveAlertsTable() {
+    const tableScreener = document.getElementById('table-screener');
+    if (!tableScreener) return;
+    const thead = tableScreener.querySelector('thead');
+    
+    thead.innerHTML = `
+        <tr>
+            <th>Ticker</th>
+            <th>Price</th>
+            <th>Change</th>
+            <th>Supertrend (5m)</th>
+            <th>Cloud State</th>
+            <th>Recent Alert</th>
+            <th class="text-center">Action</th>
+        </tr>
+    `;
+
+    elScreenerList.innerHTML = '';
+    
+    const alertsList = Object.values(watchlistSignals);
+    if (alertsList.length === 0) {
+        elScreenerList.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4 text-muted">
+                    <i class="fa-regular fa-bell font-lg mb-2"></i>
+                    <p>No active alerts scanned yet.</p>
+                    <p class="text-xs text-muted mt-1">Add tickers to your watchlist to enable live trading alerts.</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    const sortedAlerts = [...alertsList].sort((a, b) => {
+        const aHasSig = a.recent_signal && a.recent_signal !== 'neutral' && a.recent_signal_age <= 3;
+        const bHasSig = b.recent_signal && b.recent_signal !== 'neutral' && b.recent_signal_age <= 3;
+        if (aHasSig && !bHasSig) return -1;
+        if (!aHasSig && bHasSig) return 1;
+        if (aHasSig && bHasSig) {
+            return a.recent_signal_age - b.recent_signal_age;
+        }
+        return a.ticker.localeCompare(b.ticker);
+    });
+
+    sortedAlerts.forEach(alert => {
+        const tr = document.createElement('tr');
+        
+        const isRecentBuy = alert.recent_signal && alert.recent_signal.startsWith('buy') && alert.recent_signal_age <= 3;
+        const isRecentSell = alert.recent_signal && alert.recent_signal.startsWith('sell') && alert.recent_signal_age <= 3;
+        
+        if (isRecentBuy) {
+            tr.classList.add('tr-trending-up');
+        } else if (isRecentSell) {
+            tr.style.borderLeft = '3.5px solid var(--color-loser)';
+        }
+        
+        const stDir = alert.supertrend_direction;
+        const stBadge = stDir === 1
+            ? `<span class="signal-pill buy"><i class="fa-solid fa-circle-chevron-up"></i> Bullish</span>`
+            : `<span class="signal-pill sell"><i class="fa-solid fa-circle-chevron-down"></i> Bearish</span>`;
+            
+        const price = alert.price;
+        const ema12 = alert.ema12;
+        const ema34 = alert.ema34;
+        
+        let cloudText = 'Mixed';
+        let cloudClass = 'neutral';
+        if (price > Math.max(ema12, ema34) && ema12 > ema34) {
+            cloudText = 'Bullish';
+            cloudClass = 'bullish';
+        } else if (price < Math.min(ema12, ema34) && ema12 < ema34) {
+            cloudText = 'Bearish';
+            cloudClass = 'bearish';
+        }
+        const cloudBadge = `<span class="status-badge ${cloudClass}">${cloudText}</span>`;
+        
+        let signalText = 'None';
+        let signalClass = 'text-muted';
+        if (alert.recent_signal && alert.recent_signal !== 'neutral') {
+            const ageStr = alert.recent_signal_age === 0 ? 'Just Now' : `${alert.recent_signal_age} bars ago`;
+            if (alert.recent_signal.startsWith('buy')) {
+                signalText = `<i class="fa-solid fa-circle-check"></i> BUY (${ageStr})`;
+                signalClass = 'text-gainer font-bold';
+            } else {
+                signalText = `<i class="fa-solid fa-circle-xmark"></i> SELL (${ageStr})`;
+                signalClass = 'text-loser font-bold';
+            }
+        }
+        
+        const isWatchlisted = watchlist.includes(alert.ticker);
+        const starClass = isWatchlisted ? 'fa-solid fa-star text-watchlist' : 'fa-regular fa-star';
+        
+        tr.innerHTML = `
+            <td class="ticker-cell">${alert.ticker}</td>
+            <td class="font-medium">$${alert.price.toFixed(2)}</td>
+            <td><span class="change-cell ${alert.change_pct >= 0 ? 'positive' : 'negative'}">${alert.change_pct >= 0 ? '+' : ''}${alert.change_pct.toFixed(2)}%</span></td>
+            <td>${stBadge}</td>
+            <td>${cloudBadge}</td>
+            <td><span class="${signalClass}">${signalText}</span></td>
+            <td class="text-center" onclick="event.stopPropagation()">
+                <button class="btn-icon btn-watchlist-star" data-ticker="${alert.ticker}" title="${isWatchlisted ? 'Remove from Watchlist' : 'Add to Watchlist'}">
+                    <i class="${starClass}"></i>
+                </button>
+                <button class="btn-icon btn-row-ai-news" data-ticker="${alert.ticker}" title="AI News Analysis">
+                    <i class="fa-solid fa-brain"></i>
+                </button>
+            </td>
+        `;
+        
+        tr.addEventListener('click', () => {
+            openStockDetails(alert.ticker);
+        });
+        
+        const starBtn = tr.querySelector('.btn-watchlist-star');
+        starBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const tick = starBtn.getAttribute('data-ticker');
+            if (watchlist.includes(tick)) {
+                await removeFromWatchlistApi(tick);
+            } else {
+                await addToWatchlistApi(tick);
+            }
+            await loadWatchlistData();
+            await loadWatchlistSignals();
+        });
+        
+        const aiNewsBtn = tr.querySelector('.btn-row-ai-news');
+        aiNewsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openAiNews(alert.ticker);
+        });
+        
+        elScreenerList.appendChild(tr);
+    });
+}
+
+// Load Watchlist signals
+async function loadWatchlistSignals() {
+    try {
+        const response = await fetch('/api/watchlist/signals');
+        const data = await response.json();
+        if (data.success) {
+            watchlistSignals = data.signals;
+            
+            let activeAlerts = 0;
+            Object.values(watchlistSignals).forEach(sig => {
+                if (sig.recent_signal && sig.recent_signal.startsWith('buy') && sig.recent_signal_age <= 3) {
+                    activeAlerts++;
+                }
+            });
+            
+            elLiveAlertsCount.textContent = activeAlerts;
+            if (activeAlerts > 0) {
+                elLiveAlertsCount.classList.remove('hidden');
+                elTabLiveAlerts.querySelector('i').classList.add('animate-pulse');
+            } else {
+                elLiveAlertsCount.classList.add('hidden');
+                elTabLiveAlerts.querySelector('i').classList.remove('animate-pulse');
+            }
+            
+            if (activeTab === 'livealerts') {
+                renderScreenerTable();
+            }
+            
+            renderWatchlistTable();
+        }
+    } catch (err) {
+        console.error("Error loading watchlist signals:", err);
+    }
+}
+
+// Render Live Indicator Chart
+async function renderLiveIndicatorChart(ticker) {
+    elChartLoading.classList.remove('hidden');
+    elLiveIndicatorChart.innerHTML = '';
+    
+    try {
+        const response = await fetch(`/api/stock/${ticker}/indicators?interval=5m`);
+        const data = await response.json();
+        
+        if (!data.success) {
+            elLiveIndicatorChart.innerHTML = `<div class="text-center py-4 text-loser"><i class="fa-solid fa-triangle-exclamation font-lg mb-2"></i><p>Failed to load indicators: ${data.error}</p></div>`;
+            elChartLoading.classList.add('hidden');
+            return;
+        }
+        
+        elChartLoading.classList.add('hidden');
+        renderStrategyCard(data.status);
+        
+        const chartOptionsObj = {
+            layout: {
+                background: { type: 'solid', color: '#1e222d' },
+                textColor: '#d1d4dc',
+            },
+            grid: {
+                vertLines: { color: 'rgba(42, 46, 57, 0.2)' },
+                horzLines: { color: 'rgba(42, 46, 57, 0.2)' },
+            },
+            rightPriceScale: {
+                borderVisible: false,
+            },
+            timeScale: {
+                borderVisible: false,
+                timeVisible: true,
+                secondsVisible: false,
+            },
+            crosshair: {
+                mode: 0,
+            }
+        };
+        
+        lightweightChart = LightweightCharts.createChart(elLiveIndicatorChart, chartOptionsObj);
+        
+        lightweightChartCandleSeries = lightweightChart.addCandlestickSeries({
+            upColor: '#26a69a',
+            downColor: '#ef5350',
+            borderVisible: false,
+            wickUpColor: '#26a69a',
+            wickDownColor: '#ef5350',
+        });
+        
+        lightweightChartCandleSeries.setData(data.candles);
+        
+        lightweightChartEma12Series = lightweightChart.addLineSeries({
+            color: '#3b82f6',
+            lineWidth: 1.5,
+            title: 'EMA 12',
+        });
+        lightweightChartEma12Series.setData(data.ema12);
+        
+        lightweightChartEma34Series = lightweightChart.addLineSeries({
+            color: '#f59e0b',
+            lineWidth: 1.5,
+            title: 'EMA 34',
+        });
+        lightweightChartEma34Series.setData(data.ema34);
+        
+        lightweightChartEma50Series = lightweightChart.addLineSeries({
+            color: '#8b5cf6',
+            lineWidth: 1.5,
+            title: 'EMA 50',
+        });
+        lightweightChartEma50Series.setData(data.ema50);
+        
+        const supertrendLineData = data.supertrend.map(pt => {
+            return {
+                time: pt.time,
+                value: pt.value,
+                color: pt.direction === 1 ? '#10b981' : '#ef4444'
+            };
+        });
+        
+        lightweightChartSupertrendSeries = lightweightChart.addLineSeries({
+            lineWidth: 2.5,
+            title: 'Supertrend',
+        });
+        lightweightChartSupertrendSeries.setData(supertrendLineData);
+        
+        const markers = [];
+        data.signals.forEach(sig => {
+            if (sig.type.startsWith('buy')) {
+                markers.push({
+                    time: sig.time,
+                    position: 'belowBar',
+                    color: '#06b6d4',
+                    shape: 'arrowUp',
+                    text: 'BUY',
+                    size: 1.5
+                });
+            } else if (sig.type.startsWith('sell')) {
+                markers.push({
+                    time: sig.time,
+                    position: 'aboveBar',
+                    color: '#ec4899',
+                    shape: 'arrowDown',
+                    text: 'SELL',
+                    size: 1.5
+                });
+            }
+        });
+        
+        if (markers.length > 0) {
+            lightweightChartCandleSeries.setMarkers(markers);
+        }
+        
+        lightweightChart.timeScale().fitContent();
+        
+        const resizeObserver = new ResizeObserver(entries => {
+            if (entries.length === 0 || !lightweightChart) return;
+            const { width, height } = entries[0].contentRect;
+            lightweightChart.resize(width, height);
+        });
+        resizeObserver.observe(elLiveIndicatorChart);
+        
+    } catch (err) {
+        console.error("Error rendering lightweight chart:", err);
+        elLiveIndicatorChart.innerHTML = `<div class="text-center py-4 text-loser"><i class="fa-solid fa-triangle-exclamation font-lg mb-2"></i><p>Connection error loading live chart.</p></div>`;
+        elChartLoading.classList.add('hidden');
+    }
+}
+
+function renderStrategyCard(status) {
+    if (!status) return;
+    
+    const stDir = status.supertrend_direction;
+    elStrategySupertrend.className = `value status-badge ${stDir === 1 ? 'bullish' : 'bearish'}`;
+    elStrategySupertrend.innerHTML = stDir === 1 
+        ? `<i class="fa-solid fa-circle-chevron-up"></i> Bullish ($${status.supertrend.toFixed(2)})`
+        : `<i class="fa-solid fa-circle-chevron-down"></i> Bearish ($${status.supertrend.toFixed(2)})`;
+        
+    const price = status.price;
+    const ema12 = status.ema12;
+    const ema34 = status.ema34;
+    const ema50 = status.ema50;
+    
+    let biasClass = 'neutral';
+    let biasText = 'Neutral / Mixed';
+    let biasIcon = '<i class="fa-solid fa-circle-minus"></i>';
+    
+    if (price > Math.max(ema12, ema34) && ema12 > ema34) {
+        biasClass = 'bullish';
+        biasText = 'Bullish (12 > 34)';
+        biasIcon = '<i class="fa-solid fa-circle-arrow-up"></i>';
+    } else if (price < Math.min(ema12, ema34) && ema12 < ema34) {
+        biasClass = 'bearish';
+        biasText = 'Bearish (12 < 34)';
+        biasIcon = '<i class="fa-solid fa-circle-arrow-down"></i>';
+    }
+    
+    elStrategyEmaCloud.className = `value status-badge ${biasClass}`;
+    elStrategyEmaCloud.innerHTML = `${biasIcon} ${biasText}`;
+    
+    const signal = status.signal;
+    let signalClass = 'neutral';
+    let signalText = 'No Active Signal';
+    let signalIcon = '<i class="fa-solid fa-circle-notch"></i>';
+    
+    if (signal === 'buy_supertrend_flip') {
+        signalClass = 'bullish';
+        signalText = 'BUY - Supertrend Flip';
+        signalIcon = '<i class="fa-solid fa-circle-check"></i>';
+    } else if (signal === 'buy_cloud_breakout') {
+        signalClass = 'bullish';
+        signalText = 'BUY - Cloud Breakout';
+        signalIcon = '<i class="fa-solid fa-circle-check"></i>';
+    } else if (signal === 'sell_supertrend_flip') {
+        signalClass = 'bearish';
+        signalText = 'SELL - Supertrend Flip';
+        signalIcon = '<i class="fa-solid fa-circle-xmark"></i>';
+    } else if (signal === 'sell_cloud_breakdown') {
+        signalClass = 'bearish';
+        signalText = 'SELL - Cloud Breakdown';
+        signalIcon = '<i class="fa-solid fa-circle-xmark"></i>';
+    }
+    
+    elStrategySignal.className = `value status-badge ${signalClass}`;
+    elStrategySignal.innerHTML = `${signalIcon} ${signalText}`;
+    
+    elModalStrategyCard.className = 'sidebar-card strategy-status-card';
+    if (signalClass === 'bullish') {
+        elModalStrategyCard.classList.add('strategy-card-glow-buy');
+    } else if (signalClass === 'bearish') {
+        elModalStrategyCard.classList.add('strategy-card-glow-sell');
+    }
+    
+    let recText = '';
+    if (signalClass === 'bullish') {
+        recText = `<strong>BUY ALERT:</strong> A bullish entry signal has triggered on the 5-minute timeframe. `;
+        if (signal === 'buy_supertrend_flip') {
+            recText += `The Supertrend has flipped bullish, confirming upward momentum. Stop Loss is set at the Supertrend line ($${status.supertrend.toFixed(2)}) or just below the 34-50 EMA Cloud.`;
+        } else {
+            recText += `Price has broken out above the 12-34 EMA Cloud while Supertrend remains bullish. This indicates strong continuation. Target a 4:1 reward-to-risk ratio.`;
+        }
+    } else if (signalClass === 'bearish') {
+        recText = `<strong>SELL / SHORT ALERT:</strong> A bearish exit signal has triggered. `;
+        if (signal === 'sell_supertrend_flip') {
+            recText += `Supertrend has flipped bearish. If long, exit immediately. Consider short positions with a stop above the Supertrend line ($${status.supertrend.toFixed(2)}).`;
+        } else {
+            recText += `Price has broken down below the 12-34 EMA Cloud. Sell pressure is intensifying. Avoid long positions.`;
+        }
+    } else {
+        if (stDir === 1 && biasClass === 'bullish') {
+            recText = `<strong>BULLISH CONTINUATION:</strong> The overall trend is strongly bullish (Supertrend + Cloud aligned). Look for pullback entries into the 12-34 EMA Cloud ($${ema34.toFixed(2)} - $${ema12.toFixed(2)}) for high probability dip-buys.`;
+        } else if (stDir === -1 && biasClass === 'bearish') {
+            recText = `<strong>BEARISH CONTINUATION:</strong> The overall trend is bearish. Avoid long entries. Resistance is at the 12-34 EMA Cloud ($${ema12.toFixed(2)} - $${ema34.toFixed(2)}).`;
+        } else {
+            recText = `<strong>TREND TRANSITION:</strong> Supertrend and EMA Clouds are conflicted. Wait for clear alignment (both green or both red) before entering trades.`;
+        }
+    }
+    elStrategyRecommendation.innerHTML = recText;
 }
