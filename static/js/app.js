@@ -718,11 +718,33 @@ function renderWatchlistTable() {
 
         const vol = parseVol(volume);
         const ratio = maxVol > minVol ? (vol - minVol) / (maxVol - minVol) : 0.5;
-        const rVal = Math.round(99 * ratio + 255 * (1 - ratio));
-        const gVal = Math.round(102 * ratio + 255 * (1 - ratio));
-        const bVal = Math.round(241 * ratio + 255 * (1 - ratio));
-        const aVal = 0.35 * ratio + 0.04 * (1 - ratio);
-        const bgCol = `rgba(${rVal}, ${gVal}, ${bVal}, ${aVal})`;
+        
+        let bgCol;
+        if (ratio > 0.6) {
+            // Interpolate between Red (239, 68, 68, 0.45) and Orange (249, 115, 22, 0.35)
+            const factor = (ratio - 0.6) / 0.4;
+            const r = Math.round(239 * factor + 249 * (1 - factor));
+            const g = Math.round(68 * factor + 115 * (1 - factor));
+            const b = Math.round(68 * factor + 22 * (1 - factor));
+            const a = 0.45 * factor + 0.35 * (1 - factor);
+            bgCol = `rgba(${r}, ${g}, ${b}, ${a})`;
+        } else if (ratio > 0.2) {
+            // Interpolate between Orange (249, 115, 22, 0.35) and Yellow (234, 179, 8, 0.25)
+            const factor = (ratio - 0.2) / 0.4;
+            const r = Math.round(249 * factor + 234 * (1 - factor));
+            const g = Math.round(115 * factor + 179 * (1 - factor));
+            const b = Math.round(22 * factor + 8 * (1 - factor));
+            const a = 0.35 * factor + 0.25 * (1 - factor);
+            bgCol = `rgba(${r}, ${g}, ${b}, ${a})`;
+        } else {
+            // Interpolate between Yellow (234, 179, 8, 0.25) and Muted Grey (255, 255, 255, 0.04)
+            const factor = ratio / 0.2;
+            const r = Math.round(234 * factor + 255 * (1 - factor));
+            const g = Math.round(179 * factor + 255 * (1 - factor));
+            const b = Math.round(8 * factor + 255 * (1 - factor));
+            const a = 0.25 * factor + 0.04 * (1 - factor);
+            bgCol = `rgba(${r}, ${g}, ${b}, ${a})`;
+        }
 
         tr.innerHTML = `
             <td class="ticker-cell">${tickerHTML}</td>
