@@ -938,6 +938,131 @@ def get_watchlist_signals():
 def favicon():
     return app.send_static_file('favicon.svg')
 
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    # Retrieve data from request
+    data = request.get_json() or {}
+    message = data.get('message', '').strip()
+    history = data.get('history', [])
+    
+    if not message:
+        return jsonify({'success': False, 'error': 'Message is required.'}), 400
+        
+    # Check if Gemini key is available
+    gemini_key = os.environ.get('GEMINI_API_KEY')
+    if not gemini_key:
+        return jsonify({'success': False, 'error': 'Gemini API key is not configured on the server.'}), 500
+        
+    # Regex parse for ticker symbols in message to retrieve Yahoo Finance news
+    import re
+    words = re.findall(r'\b([A-Za-z]{1,5})\b', message)
+    potential_tickers = [w.upper() for w in words]
+    
+    # Key words indicating they want news/updates
+    is_news_query = any(k in message.lower() for k in ['news', 'headline', 'update', 'latest', 'happen', 'report', 'earnings', 'about', 'on'])
+    
+    news_context = ""
+    found_ticker = None
+    if is_news_query:
+        for ticker in potential_tickers:
+            # Skip common short English words
+            if ticker in ['I', 'A', 'ON', 'FOR', 'IN', 'IS', 'TO', 'BY', 'AT', 'IT', 'US', 'AM', 'HE', 'WE', 'UP', 'GO', 'DO', 'ME', 'MY', 'SO', 'OR', 'AN', 'IF', 'NO', 'OK', 'NEW', 'NOW', 'OUT', 'GET', 'HAS', 'CAN', 'WHO', 'THE', 'AND', 'BUT', 'YOU', 'ALL', 'ANY', 'HOW', 'WHY', 'DAY']:
+                continue
+            try:
+                t_obj = yf.Ticker(ticker)
+                yf_news = t_obj.news
+                if yf_news:
+                    found_ticker = ticker
+                    headlines = []
+                    for story in yf_news[:10]:
+                        content = story.get('content', {})
+                        if content:
+                            title = content.get('title', '')
+                            provider = content.get('provider', {}).get('displayName', '')
+                            headlines.append(f"- {title} (via {provider})")
+                    if headlines:
+                        news_context = f"\n[Real-time News Headlines for {ticker} from Yahoo Finance]:\n" + "\n".join(headlines)
+                        break
+            except Exception as e:
+                print(f"Error fetching news context for {ticker} in chat: {e}")
+                continue
+                
+    # Build System Instruction
+    system_instruction_text = (
+        "You are GainerFlow AI Assistant, an elite financial chatbot integrated directly into the GainerFlow Stock Screener. "
+        "Your role is to help users analyze stocks, explain technical indicators (like EMAs and Supertrend), and summarize recent news. "
+        "Be highly professional, polite, concise, and helpful. Use clear markdown formatting for bold text, headers, and bullet lists to make your responses readable. "
+    )
+    if news_context:
+        system_instruction_text += (
+            f"\n\nHere is real-time news context for the user's query:\n{news_context}\n\n"
+            "Use this news context to answer the user's question, summarize the headlines, and explain what is currently happening with this stock."
+        )
+        
+    # Format contents for Gemini API: map history and add the latest message
+    contents = []
+    for item in history:
+        role = item.get('role')
+        if role == 'assistant':
+            role = 'model'
+        elif role == 'user':
+            role = 'user'
+        else:
+            continue
+            
+        parts = item.get('parts', [])
+        if not parts and 'content' in item:
+            parts = [{"text": item['content']}]
+            
+        contents.append({
+            "role": role,
+            "parts": parts
+        })
+        
+    # Append latest user message
+    contents.append({
+        "role": "user",
+        "parts": [{"text": message}]
+    })
+    
+    # API Request Body
+    request_body = {
+        "contents": contents,
+        "systemInstruction": {
+            "parts": [
+                {"text": system_instruction_text}
+            ]
+        }
+    }
+    
+    gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={gemini_key}"
+    
+    try:
+        response = requests.post(gemini_url, json=request_body, headers={'Content-Type': 'application/json'}, timeout=15)
+        response_data = response.json()
+        
+        if response.status_code != 200:
+            return jsonify({
+                'success': False, 
+                'error': response_data.get('error', {}).get('message', f"Gemini API returned status {response.status_code}")
+            }), 500
+            
+        candidates = response_data.get('candidates', [])
+        if not candidates:
+            return jsonify({'success': False, 'error': "No response candidates returned from Gemini API."}), 500
+            
+        reply_text = candidates[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+        
+        return jsonify({
+            'success': True,
+            'reply': reply_text,
+            'news_retrieved': found_ticker is not None,
+            'ticker': found_ticker
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': f"Failed to communicate with Gemini API: {str(e)}"}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', port=port, debug=True)

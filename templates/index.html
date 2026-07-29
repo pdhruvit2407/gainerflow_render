@@ -404,6 +404,35 @@
         </div>
     </div>
 
+    <!-- Floating AI Chatbot Widget -->
+    <div class="chat-widget-container">
+        <!-- Floating circular chat trigger button -->
+        <button class="chat-trigger-btn" id="chat-trigger-btn" title="Ask GainerFlow AI / Get Live News">
+            <i class="fa-solid fa-comments"></i>
+            <span class="chat-pulse-ring"></span>
+        </button>
+        
+        <!-- Floating Chat Window -->
+        <div class="chat-window hidden" id="chat-window">
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <span class="chat-status-dot animate-pulse"></span>
+                    <h4>GainerFlow AI Assistant</h4>
+                </div>
+                <button class="chat-close-btn" id="chat-close-btn" title="Close Chat">&times;</button>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will be populated by JS -->
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Ask about stocks, indicators, or news..." autocomplete="off">
+                <button id="chat-send-btn" title="Send Message">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript Bundle -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

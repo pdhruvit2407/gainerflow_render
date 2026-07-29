@@ -2115,3 +2115,190 @@ function renderStrategyCard(status) {
     }
     elStrategyRecommendation.innerHTML = recText;
 }
+
+// ==========================================
+// AI Chatbot Feature Integration
+// ==========================================
+(function() {
+    let chatHistory = [];
+    
+    // Select elements
+    const elChatTriggerBtn = document.getElementById('chat-trigger-btn');
+    const elChatWindow = document.getElementById('chat-window');
+    const elChatCloseBtn = document.getElementById('chat-close-btn');
+    const elChatMessages = document.getElementById('chat-messages');
+    const elChatInput = document.getElementById('chat-input');
+    const elChatSendBtn = document.getElementById('chat-send-btn');
+    
+    if (!elChatTriggerBtn || !elChatWindow || !elChatCloseBtn || !elChatMessages || !elChatInput || !elChatSendBtn) {
+        console.error("Chatbot elements missing from the DOM.");
+        return;
+    }
+    
+    // Toggle chat window
+    elChatTriggerBtn.addEventListener('click', () => {
+        elChatWindow.classList.toggle('hidden');
+        if (!elChatWindow.classList.contains('hidden')) {
+            elChatInput.focus();
+            scrollToBottom();
+        }
+    });
+    
+    elChatCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        elChatWindow.classList.add('hidden');
+    });
+    
+    // Send message on click or enter
+    elChatSendBtn.addEventListener('click', handleUserSendMessage);
+    elChatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            handleUserSendMessage();
+        }
+    });
+    
+    // Initialize Chat with greeting
+    function initChat() {
+        appendMessage('assistant', "Hello! I am GainerFlow AI Assistant, your real-time financial copilot. Ask me about stock tickers, technical signals, or ask for the **'latest news on TSLA'** to get instant summaries!");
+    }
+    
+    async function handleUserSendMessage() {
+        const text = elChatInput.value.trim();
+        if (!text) return;
+        
+        // Append user message
+        appendMessage('user', text);
+        elChatInput.value = '';
+        
+        // Append typing indicator
+        appendTypingIndicator();
+        
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: text,
+                    history: chatHistory
+                })
+            });
+            
+            const data = await response.json();
+            removeTypingIndicator();
+            
+            if (data.success && data.reply) {
+                appendMessage('assistant', data.reply);
+            } else {
+                appendMessage('assistant', `Sorry, I encountered an error: ${data.error || 'Unknown server error'}`);
+            }
+        } catch (err) {
+            removeTypingIndicator();
+            appendMessage('assistant', `Failed to send message: ${err.message}`);
+        }
+    }
+    
+    function appendMessage(role, text) {
+        const geminiRole = (role === 'user') ? 'user' : 'model';
+        chatHistory.push({
+            role: geminiRole,
+            parts: [{ text: text }]
+        });
+        
+        // Keep history size reasonable (last 10 messages)
+        if (chatHistory.length > 20) {
+            chatHistory.shift();
+        }
+        
+        const row = document.createElement('div');
+        row.className = `chat-msg-row ${role}`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-msg-bubble';
+        bubble.innerHTML = parseMarkdown(text);
+        
+        row.appendChild(bubble);
+        elChatMessages.appendChild(row);
+        scrollToBottom();
+    }
+    
+    function appendTypingIndicator() {
+        const indicator = document.createElement('div');
+        indicator.className = 'chat-msg-row assistant';
+        indicator.id = 'chat-typing-indicator';
+        
+        indicator.innerHTML = `
+            <div class="chat-msg-bubble">
+                <div class="typing-indicator">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </div>
+            </div>
+        `;
+        elChatMessages.appendChild(indicator);
+        scrollToBottom();
+    }
+    
+    function removeTypingIndicator() {
+        const indicator = document.getElementById('chat-typing-indicator');
+        if (indicator) {
+            indicator.remove();
+        }
+    }
+    
+    function scrollToBottom() {
+        elChatMessages.scrollTop = elChatMessages.scrollHeight;
+    }
+    
+    function parseMarkdown(text) {
+        // Escapes HTML tags to prevent XSS
+        let html = text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+            
+        // Bold formatting (**text**)
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        
+        // Bullet lists
+        const lines = html.split('\n');
+        let inList = false;
+        const processedLines = [];
+        
+        lines.forEach(line => {
+            const bulletMatch = line.match(/^(\s*)[-\*]\s+(.*)$/);
+            if (bulletMatch) {
+                if (!inList) {
+                    processedLines.push('<ul>');
+                    inList = true;
+                }
+                processedLines.push(`<li>${bulletMatch[2]}</li>`);
+            } else {
+                if (inList) {
+                    processedLines.push('</ul>');
+                    inList = false;
+                }
+                processedLines.push(line);
+            }
+        });
+        if (inList) {
+            processedLines.push('</ul>');
+        }
+        
+        // Rejoin with paragraphs or line breaks
+        return processedLines
+            .map(line => {
+                if (line === '<ul>' || line === '</ul>' || line.startsWith('<li>')) {
+                    return line;
+                }
+                return line.trim() ? `<p>${line}</p>` : '';
+            })
+            .join('');
+    }
+    
+    // Start Chatbot
+    initChat();
+})();
