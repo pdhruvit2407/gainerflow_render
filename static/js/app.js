@@ -612,21 +612,6 @@ function renderWatchlistTable() {
     
     elWatchlistList.innerHTML = '';
     
-    // Parse volumes to compute heatmap min/max
-    const parseVol = (vStr) => parseInt((vStr || '').replace(/,/g, '')) || 0;
-    const volumes = sortedWatchlist.map(t => parseVol(watchlistCached[t]?.volume));
-    const maxVol = Math.max(...volumes);
-    const minVol = Math.min(...volumes);
-    
-    // Compute intersection of all four screeners for super ticker highlighting
-    const gainersSet = new Set(screenerStocks.map(s => s.ticker));
-    const activeSet = new Set(mostActiveStocks.map(s => s.ticker));
-    const unusualSet = new Set(unusualVolumeStocks.map(s => s.ticker));
-    const volatileSet = new Set(mostVolatileStocks.map(s => s.ticker));
-    const intersectionSet = new Set(
-        [...gainersSet].filter(tkr => activeSet.has(tkr) && unusualSet.has(tkr) && volatileSet.has(tkr))
-    );
-    
     // Sort watchlist copy based on sorting state
     let sortedWatchlist = [...watchlist];
     if (watchlistSortKey) {
@@ -653,6 +638,21 @@ function renderWatchlistTable() {
             }
         });
     }
+    
+    // Parse volumes to compute heatmap min/max
+    const parseVol = (vStr) => parseInt((vStr || '').replace(/,/g, '')) || 0;
+    const volumes = sortedWatchlist.map(t => parseVol(watchlistCached[t]?.volume));
+    const maxVol = Math.max(...volumes);
+    const minVol = Math.min(...volumes);
+    
+    // Compute intersection of all four screeners for super ticker highlighting
+    const gainersSet = new Set(screenerStocks.map(s => s.ticker));
+    const activeSet = new Set(mostActiveStocks.map(s => s.ticker));
+    const unusualSet = new Set(unusualVolumeStocks.map(s => s.ticker));
+    const volatileSet = new Set(mostVolatileStocks.map(s => s.ticker));
+    const intersectionSet = new Set(
+        [...gainersSet].filter(tkr => activeSet.has(tkr) && unusualSet.has(tkr) && volatileSet.has(tkr))
+    );
     
     sortedWatchlist.forEach(ticker => {
         const cached = watchlistCached[ticker] || {};
