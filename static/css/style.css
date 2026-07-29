@@ -1623,3 +1623,16 @@ h1, h2, h3, h4, h5, h6 {
     border-color: rgba(239, 68, 68, 0.4) !important;
     box-shadow: 0 8px 32px rgba(239, 68, 68, 0.1), 0 0 12px rgba(239, 68, 68, 0.05) !important;
 }
+
+/* Watchlist Volume badge styles */
+.volume-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 13px;
+    text-align: right;
+    min-width: 90px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: var(--transition);
+}

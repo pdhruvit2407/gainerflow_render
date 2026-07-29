@@ -10,7 +10,8 @@
     "PYPL",
     "IBM",
     "MS",
-    "AEHR"
+    "AEHR",
+    "NCRA"
   ],
   "notes": {
     "FOFO": "hi"
@@ -22,21 +23,21 @@
       "sector": "Technology",
       "industry": "Consumer Electronics",
       "country": "USA",
-      "market_cap": "4856.81B",
-      "pe": "40.00",
-      "price": "330.68",
-      "change": "2.80%",
-      "volume": "13,133,643",
+      "market_cap": "5049.59B",
+      "pe": "41.59",
+      "price": "343.80",
+      "change": "1.10%",
+      "volume": "28,440,680",
       "price_history": [
-        324.47,
-        324.97,
         330.34,
         330.4,
-        330.68
+        330.68,
+        343.76,
+        343.8
       ],
       "trend": "up",
       "earnings_date": "2026-07-30",
-      "earnings_soon": false
+      "earnings_soon": true
     },
     "TSLA": {
       "ticker": "TSLA",
@@ -44,17 +45,17 @@
       "sector": "Consumer Cyclical",
       "industry": "Auto Manufacturers",
       "country": "USA",
-      "market_cap": "1162.02B",
-      "pe": "286.06",
-      "price": "309.40",
-      "change": "-3.22%",
-      "volume": "26,481,683",
+      "market_cap": "1197.27B",
+      "pe": "281.65",
+      "price": "303.14",
+      "change": "-1.40%",
+      "volume": "23,654,999",
       "price_history": [
-        397.55,
-        397.01,
         310.15,
         309.13,
-        309.4
+        309.4,
+        302.89,
+        303.14
       ],
       "trend": "neutral",
       "earnings_date": "2026-10-21",
@@ -66,17 +67,17 @@
       "sector": "Consumer Cyclical",
       "industry": "Footwear & Accessories",
       "country": "USA",
-      "market_cap": "61.75B",
-      "pe": "19.84",
-      "price": "41.62",
-      "change": "1.55%",
-      "volume": "4,099,221",
+      "market_cap": "64.11B",
+      "pe": "20.60",
+      "price": "43.22",
+      "change": "0.38%",
+      "volume": "8,471,134",
       "price_history": [
-        43.42,
         43.37,
         41.59,
         41.53,
-        41.62
+        41.62,
+        43.22
       ],
       "trend": "neutral",
       "earnings_date": "2026-09-29",
@@ -88,21 +89,21 @@
       "sector": "Communication Services",
       "industry": "Internet Content & Information",
       "country": "USA",
-      "market_cap": "1539.07B",
-      "pe": "22.04",
-      "price": "606.31",
-      "change": "0.03%",
-      "volume": "3,017,440",
+      "market_cap": "1509.65B",
+      "pe": "21.62",
+      "price": "594.72",
+      "change": "0.22%",
+      "volume": "8,213,040",
       "price_history": [
-        681.74,
-        679.36,
         606.24,
         605.82,
-        606.31
+        606.31,
+        594.16,
+        594.72
       ],
       "trend": "neutral",
       "earnings_date": "2026-07-29",
-      "earnings_soon": false
+      "earnings_soon": true
     },
     "MARA": {
       "ticker": "MARA",
@@ -110,19 +111,19 @@
       "sector": "Financial",
       "industry": "Capital Markets",
       "country": "USA",
-      "market_cap": "4.74B",
+      "market_cap": "4.01B",
       "pe": "-",
-      "price": "12.44",
-      "change": "-2.55%",
-      "volume": "12,511,625",
+      "price": "10.52",
+      "change": "-7.60%",
+      "volume": "29,034,157",
       "price_history": [
-        11.88,
-        11.89,
         12.35,
         12.39,
-        12.44
+        12.44,
+        10.48,
+        10.52
       ],
-      "trend": "up",
+      "trend": "neutral",
       "earnings_date": "2026-08-06",
       "earnings_soon": false
     },
@@ -132,17 +133,17 @@
       "sector": "Technology",
       "industry": "Semiconductors",
       "country": "Taiwan",
-      "market_cap": "2104.73B",
-      "pe": "29.29",
-      "price": "405.81",
-      "change": "-2.35%",
-      "volume": "3,156,915",
+      "market_cap": "1994.12B",
+      "pe": "27.75",
+      "price": "384.48",
+      "change": "-1.99%",
+      "volume": "13,975,131",
       "price_history": [
-        418.98,
-        418.36,
         404.65,
         405.14,
-        405.81
+        405.81,
+        383.69,
+        384.48
       ],
       "trend": "neutral",
       "earnings_date": "2026-10-15",
@@ -154,17 +155,17 @@
       "sector": "Industrials",
       "industry": "Airlines",
       "country": "USA",
-      "market_cap": "38.51B",
-      "pe": "11.09",
-      "price": "118.64",
-      "change": "2.86%",
-      "volume": "881,581",
+      "market_cap": "39.62B",
+      "pe": "11.41",
+      "price": "122.05",
+      "change": "-1.39%",
+      "volume": "2,281,701",
       "price_history": [
-        122.64,
-        121.93,
         118.17,
         118.04,
-        118.64
+        118.64,
+        122.04,
+        122.05
       ],
       "trend": "neutral",
       "earnings_date": "2026-10-21",
@@ -176,20 +177,20 @@
       "sector": "Financial",
       "industry": "Credit Services",
       "country": "USA",
-      "market_cap": "49.15B",
-      "pe": "10.45",
-      "price": "55.72",
-      "change": "-0.51%",
-      "volume": "3,985,193",
+      "market_cap": "52.37B",
+      "pe": "11.22",
+      "price": "59.37",
+      "change": "1.80%",
+      "volume": "8,494,361",
       "price_history": [
-        55.47,
-        55.1,
         55.65,
         55.56,
-        55.72
+        55.72,
+        59.38,
+        59.37
       ],
       "trend": "neutral",
-      "earnings_date": "2026-07-28",
+      "earnings_date": "2026-10-27",
       "earnings_soon": false
     },
     "IBM": {
@@ -198,19 +199,19 @@
       "sector": "Technology",
       "industry": "Information Technology Services",
       "country": "USA",
-      "market_cap": "200.94B",
-      "pe": "18.98",
-      "price": "213.79",
-      "change": "3.46%",
-      "volume": "3,630,946",
+      "market_cap": "216.21B",
+      "pe": "20.37",
+      "price": "229.49",
+      "change": "0.85%",
+      "volume": "4,208,977",
       "price_history": [
-        214.56,
-        214.45,
         213.36,
         213.5,
-        213.79
+        213.79,
+        229.23,
+        229.49
       ],
-      "trend": "neutral",
+      "trend": "up",
       "earnings_date": "2026-10-21",
       "earnings_soon": false
     },
@@ -220,17 +221,17 @@
       "sector": "Financial",
       "industry": "Capital Markets",
       "country": "USA",
-      "market_cap": "338.47B",
-      "pe": "17.35",
-      "price": "214.59",
-      "change": "-0.27%",
-      "volume": "1,312,472",
+      "market_cap": "323.64B",
+      "pe": "16.58",
+      "price": "205.18",
+      "change": "-3.02%",
+      "volume": "3,458,571",
       "price_history": [
-        229.44,
-        228.78,
         214.14,
         213.95,
-        214.59
+        214.59,
+        205.07,
+        205.18
       ],
       "trend": "neutral",
       "earnings_date": "2026-10-14",
@@ -242,20 +243,38 @@
       "sector": "Technology",
       "industry": "Semiconductor Equipment & Materials",
       "country": "USA",
-      "market_cap": "2.60B",
+      "market_cap": "2.19B",
       "pe": "-",
-      "price": "80.18",
-      "change": "-9.41%",
-      "volume": "1,203,387",
+      "price": "67.03",
+      "change": "-4.25%",
+      "volume": "1,468,995",
       "price_history": [
-        92.43,
         91.98,
         79.21,
         79.82,
-        80.18
+        80.18,
+        67.03
       ],
       "trend": "neutral",
       "earnings_date": "2026-10-08",
+      "earnings_soon": false
+    },
+    "NCRA": {
+      "ticker": "NCRA",
+      "company": "Nocera Inc",
+      "sector": "Consumer Defensive",
+      "industry": "Packaged Foods",
+      "country": "Taiwan",
+      "market_cap": "4.82M",
+      "pe": "-",
+      "price": "3.11",
+      "change": "117.13%",
+      "volume": "114,596,107",
+      "price_history": [
+        3.11
+      ],
+      "trend": "neutral",
+      "earnings_date": "N/A",
       "earnings_soon": false
     }
   }

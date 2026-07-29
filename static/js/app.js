@@ -612,6 +612,12 @@ function renderWatchlistTable() {
     
     elWatchlistList.innerHTML = '';
     
+    // Parse volumes to compute heatmap min/max
+    const parseVol = (vStr) => parseInt((vStr || '').replace(/,/g, '')) || 0;
+    const volumes = sortedWatchlist.map(t => parseVol(watchlistCached[t]?.volume));
+    const maxVol = Math.max(...volumes);
+    const minVol = Math.min(...volumes);
+    
     // Compute intersection of all four screeners for super ticker highlighting
     const gainersSet = new Set(screenerStocks.map(s => s.ticker));
     const activeSet = new Set(mostActiveStocks.map(s => s.ticker));
@@ -710,12 +716,20 @@ function renderWatchlistTable() {
             ? `Stop Loss (SL): $${slVal.toFixed(2)} (-2.5%) | Target (TP 4:1): $${tpVal.toFixed(2)} (+10.0%)` 
             : '';
 
+        const vol = parseVol(volume);
+        const ratio = maxVol > minVol ? (vol - minVol) / (maxVol - minVol) : 0.5;
+        const rVal = Math.round(99 * ratio + 255 * (1 - ratio));
+        const gVal = Math.round(102 * ratio + 255 * (1 - ratio));
+        const bVal = Math.round(241 * ratio + 255 * (1 - ratio));
+        const aVal = 0.35 * ratio + 0.04 * (1 - ratio);
+        const bgCol = `rgba(${rVal}, ${gVal}, ${bVal}, ${aVal})`;
+
         tr.innerHTML = `
             <td class="ticker-cell">${tickerHTML}</td>
             <td class="company-cell text-xs">${company}</td>
             <td class="text-right font-medium price-cell-hoverable" title="${priceTooltip}">${price !== 'N/A' ? '$' + price : 'N/A'}</td>
             <td class="text-right"><span class="change-cell ${changeClass}">${changeSign}${change}</span></td>
-            <td class="text-right font-medium">${volume}</td>
+            <td class="text-right"><span class="volume-badge" style="background-color: ${bgCol};">${volume}</span></td>
             <td class="text-center" onclick="event.stopPropagation()">
                 <button class="btn-icon btn-row-ai-news" data-ticker="${ticker}" title="AI News Analysis">
                     <i class="fa-solid fa-brain" style="color: #a855f7;"></i>
