@@ -137,7 +137,7 @@ def scrape_finviz_screener(url):
                 
             data = {}
             for i in range(len(cells)):
-                header_name = headers_list[i].lower().replace('.', '').replace('/', '').replace(' ', '_')
+                header_name = headers_list[i].lower().replace('.', '').replace('/', '').replace('%', '').replace(' ', '_').strip('_')
                 
                 # Prevent duplicate first character from logo initial graphic in ticker column
                 if header_name == 'ticker':
@@ -163,7 +163,7 @@ def scrape_finviz_screener(url):
                 'market_cap': data.get('market_cap', ''),
                 'pe': data.get('pe', ''),
                 'price': data.get('price', ''),
-                'change': data.get('change', ''),
+                'change': data.get('change') or data.get('change_%') or data.get('change_pct') or data.get('change_percent') or '',
                 'volume': data.get('volume', '')
             })
             
@@ -252,7 +252,7 @@ def scrape_ticker_details(ticker):
                             
         # Extracted basic stats
         price = snapshot_data.get('Price', 'N/A')
-        change = snapshot_data.get('Change', 'N/A')
+        change = snapshot_data.get('Change %') or snapshot_data.get('Change', 'N/A')
         market_cap = snapshot_data.get('Market Cap', 'N/A')
         pe = snapshot_data.get('P/E', 'N/A')
         volume = snapshot_data.get('Volume', 'N/A')
@@ -268,7 +268,7 @@ def scrape_ticker_details(ticker):
                     profile_text = td.text.strip()
                     break
                     
-        # Fetch next earnings date from yfinance
+        # Fetch next earnings date and fallback price/change from yfinance if needed
         earnings_date_str = "N/A"
         earnings_soon = False
         try:
@@ -290,8 +290,21 @@ def scrape_ticker_details(ticker):
                 earnings_date_str = next_earnings_date.strftime('%Y-%m-%d')
                 if today <= next_earnings_date <= three_days_later:
                     earnings_soon = True
+                    
+            # Fallback to yfinance if price or change is missing
+            if change == 'N/A' or price == 'N/A':
+                fast_info = getattr(yt, 'fast_info', None)
+                if fast_info:
+                    if price == 'N/A' and hasattr(fast_info, 'last_price') and fast_info.last_price:
+                        price = f"{fast_info.last_price:.2f}"
+                    if change == 'N/A' and hasattr(fast_info, 'last_price') and hasattr(fast_info, 'previous_close'):
+                        lp = fast_info.last_price
+                        pc = fast_info.previous_close
+                        if pc and pc > 0:
+                            pct = ((lp - pc) / pc) * 100
+                            change = f"{pct:+.2f}%"
         except Exception as ex:
-            print(f"Error fetching calendar for {ticker}: {ex}")
+            print(f"Error fetching calendar or fallback data for {ticker}: {ex}")
 
         details = {
             'ticker': ticker,

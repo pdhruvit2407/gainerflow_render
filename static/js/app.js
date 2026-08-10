@@ -24,6 +24,21 @@ let lightweightChartSupertrendSeries = null;
 let watchlistSortKey = null; // 'price' or 'volume'
 let watchlistSortOrder = 'desc'; // 'asc' or 'desc'
 
+// Utility function to format stock percentage change
+function formatStockChangeDisplay(rawChange) {
+    if (!rawChange || rawChange === 'N/A') {
+        return { text: 'N/A', cssClass: '', val: 0 };
+    }
+    const val = parseFloat(rawChange);
+    if (isNaN(val)) {
+        return { text: rawChange, cssClass: '', val: 0 };
+    }
+    const cssClass = val >= 0 ? 'positive' : 'negative';
+    const hasSign = rawChange.trim().startsWith('+') || rawChange.trim().startsWith('-');
+    const sign = (val >= 0 && !hasSign) ? '+' : '';
+    return { text: `${sign}${rawChange}`, cssClass: cssClass, val: val };
+}
+
 // Chart state options (default: Candle, Daily, Indicators on)
 let chartOptions = {
     ty: 'c',
@@ -513,9 +528,7 @@ function renderScreenerTable() {
         const isWatchlisted = watchlist.includes(stock.ticker);
         const starClass = isWatchlisted ? 'fa-solid fa-star text-watchlist' : 'fa-regular fa-star';
         
-        const changeVal = parseFloat(stock.change);
-        const changeClass = changeVal >= 0 ? 'positive' : 'negative';
-        const changeSign = changeVal >= 0 ? '+' : '';
+        const formattedChange = formatStockChangeDisplay(stock.change);
         
         const isIntersection = intersectionSet.has(stock.ticker);
         if (isIntersection) {
@@ -539,7 +552,7 @@ function renderScreenerTable() {
             <td class="company-cell">${stock.company}</td>
             <td>${stock.sector}</td>
             <td class="text-right font-medium price-cell-hoverable" title="${priceTooltip}">$${stock.price}</td>
-            <td class="text-right"><span class="change-cell ${changeClass}">${changeSign}${stock.change}</span></td>
+            <td class="text-right"><span class="change-cell ${formattedChange.cssClass}">${formattedChange.text}</span></td>
             <td class="text-right">${stock.volume}</td>
             <td class="text-center" onclick="event.stopPropagation()">
                 <button class="btn-icon btn-watchlist-star" data-ticker="${stock.ticker}" title="${isWatchlisted ? 'Remove from Watchlist' : 'Add to Watchlist'}">
@@ -663,9 +676,7 @@ function renderWatchlistTable() {
         const company = cached.company || 'Loading details...';
         const volume = cached.volume || 'N/A';
         
-        const changeVal = parseFloat(change);
-        const changeClass = changeVal >= 0 ? 'positive' : 'negative';
-        const changeSign = changeVal >= 0 ? '+' : '';
+        const formattedChange = formatStockChangeDisplay(change);
         
         const isIntersection = intersectionSet.has(ticker);
         const isTrendingUp = cached.trend === 'up';
@@ -750,7 +761,7 @@ function renderWatchlistTable() {
             <td class="ticker-cell">${tickerHTML}</td>
             <td class="company-cell text-xs">${company}</td>
             <td class="text-right font-medium price-cell-hoverable" title="${priceTooltip}">${price !== 'N/A' ? '$' + price : 'N/A'}</td>
-            <td class="text-right"><span class="change-cell ${changeClass}">${changeSign}${change}</span></td>
+            <td class="text-right"><span class="change-cell ${formattedChange.cssClass}">${formattedChange.text}</span></td>
             <td class="text-right"><span class="volume-badge" style="background-color: ${bgCol};">${volume}</span></td>
             <td class="text-center" onclick="event.stopPropagation()">
                 <button class="btn-icon btn-row-ai-news" data-ticker="${ticker}" title="AI News Analysis">
@@ -981,10 +992,9 @@ function renderModalData() {
     // Summary card
     elModalPrice.textContent = `$${s.price}`;
     
-    const changeVal = parseFloat(s.change);
-    const changeSign = changeVal >= 0 ? '+' : '';
-    elModalChange.textContent = `${changeSign}${s.change}`;
-    elModalChange.className = `value change-text change-cell ${changeVal >= 0 ? 'positive' : 'negative'}`;
+    const formattedChange = formatStockChangeDisplay(s.change);
+    elModalChange.textContent = formattedChange.text;
+    elModalChange.className = `value change-text change-cell ${formattedChange.cssClass}`;
     
     elModalMarketCap.textContent = s.market_cap;
     elModalVolume.textContent = s.volume;
