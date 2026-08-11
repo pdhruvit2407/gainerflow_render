@@ -6,3 +6,4 @@ gunicorn>=20.1.0
 yfinance>=0.2.38
 pandas>=2.0.0
 numpy>=1.24.0
+curl_cffi>=0.6.0

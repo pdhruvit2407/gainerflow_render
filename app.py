@@ -1,6 +1,10 @@
 import os
 import json
 import requests
+try:
+    from curl_cffi import requests as curl_requests
+except Exception:
+    curl_requests = requests
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -8,6 +12,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from flask import Flask, jsonify, render_template, request, Response
+
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 app = Flask(
@@ -171,6 +176,18 @@ def save_watchlist(data):
     except Exception as e:
         print(f"Error saving local watchlist: {e}")
 
+# Helper to execute HTTP requests to Finviz with TLS impersonation
+def http_get_finviz(url):
+    headers = HEADERS
+    if hasattr(curl_requests, 'get') and curl_requests != requests:
+        try:
+            res = curl_requests.get(url, headers=headers, impersonate="chrome120", timeout=10)
+            if res.status_code == 200:
+                return res
+        except Exception as e:
+            print(f"curl_cffi get error for {url}: {e}")
+    return requests.get(url, headers=headers, timeout=10)
+
 # Generic parser for Finviz screener table with multi-URL retry and yfinance fallback
 def scrape_finviz_screener(url):
     urls_to_try = [url]
@@ -184,7 +201,7 @@ def scrape_finviz_screener(url):
     
     for req_url in urls_to_try:
         try:
-            response = requests.get(req_url, headers=HEADERS, timeout=10)
+            response = http_get_finviz(req_url)
             if response.status_code != 200:
                 last_error = f"Failed to fetch Finviz screener (Status {response.status_code})"
                 continue
@@ -284,9 +301,10 @@ def scrape_ticker_details(ticker):
     
     for url in urls_to_try:
         try:
-            response = requests.get(url, headers=HEADERS, timeout=10)
+            response = http_get_finviz(url)
             if response.status_code != 200:
                 continue
+
                 
             soup = BeautifulSoup(response.text, 'html.parser')
             title = soup.find('title')
