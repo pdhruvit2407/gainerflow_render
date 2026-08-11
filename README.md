@@ -20,14 +20,14 @@ GainerFlow is a premium, real-time stock screener and watchlist dashboard. It sc
 
 ## Tech Stack
 
-- **Backend**: Python, Flask, BeautifulSoup4, Requests
+- **Backend**: Python, Flask, BeautifulSoup4, Requests, Gunicorn
 - **AI Engine**: Gemini 2.5 Flash API (via direct REST API calls)
 - **Frontend**: HTML5, Vanilla JavaScript, CSS3 (glassmorphic styling, animations, responsive design)
 - **Data Source**: Finviz quotes & charts
 
 ---
 
-## Getting Started
+## Getting Started Locally
 
 ### 1. Prerequisites
 Ensure you have Python 3.9+ installed.
@@ -49,10 +49,43 @@ The server will start on port `5001`. Access the dashboard at:
 
 ---
 
+## Deploying to Render 🚀
+
+GainerFlow is fully configured for seamless 1-click or manual deployment on [Render](https://render.com).
+
+### Option A: Using Render Blueprints (Recommended)
+
+1. Push this repository to GitHub or GitLab.
+2. Sign in to your [Render Dashboard](https://dashboard.render.com/).
+3. Click **New +** and select **Blueprint**.
+4. Connect your repository containing `render.yaml`.
+5. Under **Environment Variables**, enter your `GEMINI_API_KEY`.
+6. Click **Apply**. Render will automatically build and deploy your application.
+
+### Option B: Manual Web Service Setup
+
+1. Sign in to [Render Dashboard](https://dashboard.render.com/).
+2. Click **New +** and select **Web Service**.
+3. Connect your repository.
+4. Configure the Web Service:
+   - **Name**: `gainerflow`
+   - **Environment**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn app:app`
+5. Add Environment Variable:
+   - Key: `GEMINI_API_KEY`
+   - Value: `your_gemini_api_key_here`
+6. Click **Create Web Service**.
+
+---
+
 ## Project Structure
 
 ```
 ├── app.py              # Flask server, scrapers & Gemini integration
+├── Procfile            # Render / Heroku process declaration (web: gunicorn app:app)
+├── render.yaml         # Render Blueprint configuration
+├── requirements.txt    # Python dependencies
 ├── watchlist.json      # Local JSON database for watchlist data
 ├── templates/
 │   └── index.html      # Main dashboard HTML template
